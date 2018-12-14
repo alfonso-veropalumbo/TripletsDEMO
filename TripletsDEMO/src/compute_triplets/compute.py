@@ -6,9 +6,11 @@ Created on 13 dic 2018
 
 from generate_data.generate import GenerateData
 from numpy import zeros, cos, sin, arccos, sqrt, power, pi, where, array,\
-    histogram
+    histogram, dot, multiply, sum, meshgrid
 from scipy.special import legendre
 import matplotlib.pyplot as plt
+from itertools import combinations, product
+from timeit import itertools
 
 class ComputeTriplets(GenerateData):
     '''
@@ -51,55 +53,18 @@ class ComputeTriplets(GenerateData):
         :param points: 
         '''
         
-        nShells = len(points.keys())
-
-        bin1_out = []
-        bin2_out = []
-        bin3sq = []
-        costheta = []
-        
-        #Isosceles
-        for s1 in range(nShells):
-            N12 = len(points[s1])
-            bin1sq = power(points[s1][:,0], 2)
-            for i in range(N12):
-                for j in range(N12):
-                    bin1_out.append(points[s1][i,0])
-                    bin2_out.append(points[s1][j,0])
-                    if (i==j):
-                        mu=1.
-                    else:
-                        mu = cos(points[s1][i,1])*cos(points[s1][j,1])+\
-                             sin(points[s1][i,1])*sin(points[s1][j,1])*cos(points[s1][i,2]-points[s1][j,2])
-                    costheta.append(mu)
-                    bin3sq.append(bin1sq[i]+bin1sq[j]-2.*mu*points[s1][i,0]*points[s1][j,0])
- 
-        #Non Isosceles
-        for s1 in range(nShells):
-            N12 = len(points[s1])
-            bin1sq = power(points[s1][:,0], 2)
-            for s2 in range(s1+1, nShells):
-                N13 = len(points[s2])
-                bin2sq = power(points[s2][:,0], 2)
-                for i in range(N12):
-                    for j in range(N13):
-                        bin1_out.append(points[s1][i,0])
-                        bin2_out.append(points[s2][j,0])
-                        mu = cos(points[s1][i,1])*cos(points[s2][j,1])+\
-                             sin(points[s1][i,1])*sin(points[s2][j,1])*cos(points[s1][i,2]-points[s2][j,2])
-                        costheta.append(mu)
-                        bin3sq.append(bin1sq[i]+bin2sq[j]-2.*mu*points[s1][i,0]*points[s2][j,0])
-        
-        theta = arccos(costheta)
-        bin3 = sqrt(bin3sq)
-        
+        comb = list(combinations(range(len(points)), 2))
+        pp = array([ [points[i], points[j]] for i,j in comb])
         triangles = {}
-        triangles["r12"] = array(bin1_out)
-        triangles["r13"] = array(bin2_out)
-        triangles["r23"] = array(bin3)
-        triangles["mu"] = array(costheta)
-        triangles["theta"] = array(theta)
+        triangles["r12"] = pp[:,0, 3]
+        triangles["r13"] = pp[:,1, 3]
+        triangles["mu"] = sum(multiply(pp[:,0,0:3], pp[:,1,0:3]), axis=1)/(triangles["r12"]*triangles["r13"])
+        triangles["r23"] = sqrt(triangles["r12"]*triangles["r12"]+triangles["r13"]*triangles["r13"]\
+                           -2*triangles["mu"]*triangles["r12"]*triangles["r13"])
+        triangles["theta"] = arccos(triangles["mu"])
+
         return triangles
+
     
     def getBinnedTriplets(self, triangles, r12=10., r13=50.,  binSize=5, nb = 10, norders=11):
         '''

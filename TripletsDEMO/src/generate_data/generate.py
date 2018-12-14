@@ -5,6 +5,7 @@ Created on 12 dic 2018
 '''
 
 import numpy as np
+from numpy import hstack
 
 class GenerateData(object):
     '''
@@ -43,21 +44,19 @@ class GenerateData(object):
 
         V13 = self.shell_volume(r13_min, r13_max)
         N13 = int(V13*nbar)
-
-        #Objects in the first shell
-        bin1 = np.random.random(N12)*(r12_max-r12_min)+r12_min
-        theta1 = np.random.random(N12)*np.pi
-        phi1 = np.random.random(N12)*2*np.pi
         
         #Objects in the second shell
-        bin2 = np.random.random(N13)*(r13_max-r13_min)+r13_min
-        theta2 = np.random.random(N13)*np.pi
-        phi2 = np.random.random(N13)*2*np.pi 
+        rr = np.concatenate([np.random.random(N12)*(r12_max-r12_min)+r12_min,\
+                             np.random.random(N13)*(r13_max-r13_min)+r13_min])
+        theta = np.concatenate([np.random.random(N12)*np.pi,\
+                                np.random.random(N13)*np.pi])
+        phi = np.concatenate([np.random.random(N12)*2*np.pi,\
+                              np.random.random(N13)*2*np.pi])
+        bb = np.concatenate([np.zeros(N12),\
+                              np.ones(N13)])
         
-        points = {}
-        points[0] = np.array([bin1, theta1, phi1]).T
-        points[1] = np.array([bin2, theta2, phi2]).T
-        
+        xx, yy, zz = rr*np.sin(theta)*np.cos(phi), rr*np.sin(theta)*np.sin(phi), rr*np.cos(theta)
+        points = hstack([xx, yy, zz, rr, bb])
         return points
 
     def multiple_shells(self, rMin, rMax, binSize, nbar):   
@@ -77,19 +76,22 @@ class GenerateData(object):
         
         r1 = rMin
         r2 = rMin+binSize
-        bb = 0
-        points = {}
+        rr, theta, phi, bb = np.array([]),  np.array([]), np.array([]),  np.array([])
+        nn = 0
+        
         while (r1<rMax+binSize):
             VV = self.shell_volume(r1, r2)
             NN = int(VV*nbar)
 
-            rr = np.random.random(NN)*(r2-r1)+r1
-            theta = np.random.random(NN)*np.pi
-            phi = np.random.random(NN)*2*np.pi
+            rr = np.concatenate([rr, np.random.random(NN)*(r2-r1)+r1])
+            theta = np.concatenate([theta, np.random.random(NN)*np.pi])
+            phi = np.concatenate([phi, np.random.random(NN)*2*np.pi])
+            bb = np.concatenate([bb, np.zeros(NN)+nn])
             
-            points[bb] = np.array([rr, theta, phi]).T
-            bb += 1
+            nn += 1
             r1 = r2
             r2 += binSize
-    
+
+        xx, yy, zz = rr*np.sin(theta)*np.cos(phi), rr*np.sin(theta)*np.sin(phi), rr*np.cos(theta)
+        points = np.array([xx, yy, zz, rr, bb]).T
         return points
